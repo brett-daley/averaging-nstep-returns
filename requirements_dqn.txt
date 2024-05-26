@@ -1,0 +1,6 @@
+flax
+gymnasium
+jax[cuda12]
+jaxlib
+minatar
+numpy
