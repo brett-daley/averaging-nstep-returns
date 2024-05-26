@@ -7,7 +7,8 @@ import jax.numpy as jnp
 import numpy as np
 
 from agents import ControlAgent
-from data_structures import ReplayMemory
+# from data_structures import ReplayMemory
+from data_structures.replay import ReplayMemory
 import extractors
 from extractors import vector_ops as vect
 import optimizers
@@ -22,7 +23,7 @@ class DQN(ControlAgent):
 
     def __init__(self, observation_space, action_space, seed, discount, extractor='none', opt='adam', lr=3e-4, train_period=4,
                  epsilon=0.05, prepop=50_000, target_period=1, dueling='none', rmem_size=500_000,
-                 est='nstep-1', batch_size=64, batch_len=1, loss='mse'):
+                 est='nstep-1', batch_size=64, batch_len=1):
         assert isinstance(observation_space, gym.spaces.Box)
         assert isinstance(action_space, gym.spaces.Discrete)
 
@@ -40,7 +41,6 @@ class DQN(ControlAgent):
         self.batch_size = batch_size
         assert batch_len >= 1
         self.batch_len = batch_len
-        self.loss = loss
 
         self._make_network(extractor, seed)
         self._make_estimator(est)
@@ -93,7 +93,7 @@ class DQN(ControlAgent):
         discount = self.discount
         est = self.est
 
-        def trajectory_loss(params, target_params, obs, actions, rewards, terminateds, truncateds):
+        def trajectory_loss(params, target_params, obs, actions, next_obs, rewards, terminateds, truncateds):
             Q_main = self.q_values(params, obs)
             q_main_taken = returns.vmap_select_axis1(Q_main, actions)
 
@@ -103,14 +103,11 @@ class DQN(ControlAgent):
             g_targ, where_safe = est.calc_returns(v_targ, v_targ, rewards, terminateds, truncateds, discount, where_greedy)
 
             errors = stop_gradient(g_targ) - q_main_taken[:-1]  # Make relative to main network
-            losses = {
-                'mse': 0.5 * jnp.square(errors),
-                'huber': huber_loss(errors),
-            }[self.loss]
+            losses = 0.5 * jnp.square(errors)
             losses = jnp.where(where_safe, losses, 0.0)
             return losses[:batch_len]
 
-        vmap_trajectory_loss = jax.vmap(trajectory_loss, in_axes=[None, None, 0, 0, 0, 0, 0])
+        vmap_trajectory_loss = jax.vmap(trajectory_loss, in_axes=[None, None, 0, 0, 0, 0, 0, 0])
 
         @jax.jit
         def update(opt_state, target_params, minibatch, t):
@@ -134,7 +131,7 @@ class DQN(ControlAgent):
         return self.get_params(self.opt_state)
 
     def reinforce(self, obs, action, next_obs, reward, terminated, truncated, b_prob):
-        self.replay_memory.save(obs, action, reward, terminated, truncated, b_prob)
+        self.replay_memory.append((obs, action, next_obs, reward, terminated, truncated, b_prob))
         self.update_target_network()
 
         if self.t <= self.prepop:

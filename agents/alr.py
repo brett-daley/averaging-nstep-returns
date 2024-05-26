@@ -30,22 +30,6 @@ class ALR(DQN):
             (n1, n2, w), error = best_approximation(effective_n, discount)
             print("w={} --> error={}".format(w, error))
 
-        elif prefix == 'pilar1':
-            n1 = 1
-            n2 = effective_n + 1
-
-        elif prefix == 'pilar2':
-            n1 = effective_n - 1
-            n2 = effective_n + 1
-
-        elif prefix == 'pilar3':
-            n1 = effective_n - 1
-            n2 = effective_n + 2
-
-        elif prefix == 'pilar4':
-            n1 = math.ceil(effective_n / 2)
-            n2 = math.floor(3 * effective_n / 2)
-
         else:
             raise ValueError(f"unsuppported return estimator '{est}'")
 
