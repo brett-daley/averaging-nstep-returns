@@ -5,3 +5,4 @@ jaxlib
 minatar
 numpy
 opencv-python
+optax

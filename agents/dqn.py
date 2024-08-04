@@ -5,13 +5,13 @@ import jax
 from jax.lax import stop_gradient
 import jax.numpy as jnp
 import numpy as np
+import optax
 
 from agents import ControlAgent
 # from data_structures import ReplayMemory
 from data_structures.replay import ReplayMemory
 import extractors
 from extractors import vector_ops as vect
-import optimizers
 import returns.jax as returns
 import schedules
 from utils import egreedy
@@ -21,7 +21,7 @@ class DQN(ControlAgent):
     """Deep Q-Network with forward-view returns"""
     Parameters = namedtuple('Parameters', ['theta', 'w', 'b'])
 
-    def __init__(self, observation_space, action_space, seed, discount, extractor='none', opt='adam', lr=3e-4, train_period=4,
+    def __init__(self, observation_space, action_space, seed, discount, extractor='none', lr=3e-4, train_period=4,
                  epsilon=0.05, prepop=50_000, target_period=1, dueling='none', rmem_size=500_000,
                  est='nstep-1', batch_size=64, batch_len=1):
         assert isinstance(observation_space, gym.spaces.Box)
@@ -44,7 +44,7 @@ class DQN(ControlAgent):
 
         self._make_network(extractor, seed)
         self._make_estimator(est)
-        self._make_optimizer(opt, lr)
+        # self._make_optimizer(opt, lr)
         self._define_forward()
         self._define_update()
         self.t = 0
@@ -70,10 +70,11 @@ class DQN(ControlAgent):
 
     def _make_optimizer(self, opt, lr):
         assert lr > 0.0
-        self.lr = lr
-        opt_cls = getattr(optimizers, opt)
-        self.opt_init, self.opt_update, self.get_params = opt_cls(lr)
-        self.opt_state = self.opt_init(self.init_params)
+        self.opt = optax.adam(lr)
+        # self.lr = lr
+        # self.opt_init, self.opt_update, self.get_params = opt_cls(lr)
+        self.opt_state = self.opt.init()
+        # self.opt_init(self.init_params)
 
     def _define_forward(self):
         def features(params, obs):
