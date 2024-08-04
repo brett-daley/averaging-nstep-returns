@@ -131,7 +131,7 @@ class DQN(ControlAgent):
         return self.get_params(self.opt_state)
 
     def reinforce(self, obs, action, next_obs, reward, terminated, truncated, b_prob):
-        self.replay_memory.append((obs, action, next_obs, reward, terminated, truncated, b_prob))
+        self.replay_memory.append((obs, action, next_obs, reward, terminated, truncated))
         self.update_target_network()
 
         if self.t <= self.prepop:
@@ -139,7 +139,7 @@ class DQN(ControlAgent):
 
         if self.train_period == 1 or (self.t % self.train_period) == 1:
             minibatch = self.replay_memory.sample_trajectories(self.batch_size, length=self.traj_len)
-            minibatch = minibatch[:-1]  # Slice off behavior probabilities
+            # minibatch = minibatch[:-1]  # Slice off behavior probabilities
             self.opt_state = self.update(self.opt_state, self.target_params, minibatch, self.train_iterations)
             self.train_iterations += 1
 

@@ -4,3 +4,4 @@ jax[cuda12]
 jaxlib
 minatar
 numpy
+opencv-python

@@ -49,7 +49,7 @@ class ALR(DQN):
         print("testing if {} ~= {}".format(cr1, cr2))
         assert np.allclose(cr1, cr2), "contraction rate check failed"
 
-        def trajectory_loss(params, target_params, obs, actions, rewards, terminateds, truncateds):
+        def trajectory_loss(params, target_params, obs, actions, next_obs, rewards, terminateds, truncateds):
             # Just need to compute the first Q-value of the sequence with main parameters
             Q_main = self.q_values(params, obs[0, None])
             q_main_taken = Q_main[0, actions[0]]
@@ -73,10 +73,11 @@ class ALR(DQN):
             }[self.loss]
             return jnp.where(where_safe, loss, 0.0)
 
-        vmap_trajectory_loss = jax.vmap(trajectory_loss, in_axes=[None, None, 0, 0, 0, 0, 0])
+        vmap_trajectory_loss = jax.vmap(trajectory_loss, in_axes=[None, None, 0, 0, 0, 0, 0, 0])
 
         @jax.jit
         def update(opt_state, target_params, minibatch, t):
+            # print(minibatch)
             def loss(params):
                 losses = vmap_trajectory_loss(params, target_params, *minibatch)
                 return jnp.mean(losses)
