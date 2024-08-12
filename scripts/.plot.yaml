@@ -1,0 +1,111 @@
+minatar:
+  dir: /home/daley1/scratch/results
+  downsample: 10_000
+  xlim: [0, 5_000_000]
+  xlabel: Time step
+  ylabel: Return
+  colors:
+    - "#2980b9"
+    - "#c0392b"
+  legend: lower right
+  plots:
+    lcurve_asterix_n3:
+      title: "Asterix"
+      ylabel: " "
+      ylim: [0, 25]
+      labels:
+        - $n=3$
+        - PiLaR(3)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarAsterix-v1_est-nstep-3_lr-1e-05.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarAsterix-v1_est-pilar2-3_lr-1e-05.npy
+    lcurve_asterix_n5:
+      title: "Asterix"
+      ylabel: " "
+      ylim: [0, 25]
+      labels:
+        - $n=5$
+        - PiLaR(5)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarAsterix-v1_est-nstep-5_lr-1e-05.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarAsterix-v1_est-pilar2-5_lr-1e-05.npy
+    lcurve_breakout_n3:
+      title: "Breakout"
+      ylabel: " "
+      ylim: [0, 15]
+      labels:
+        - $n=3$
+        - PiLaR(3)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarBreakout-v1_est-nstep-3_lr-0.0001.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarBreakout-v1_est-pilar2-3_lr-0.0001.npy
+    lcurve_breakout_n5:
+      title: "Breakout"
+      ylabel: " "
+      ylim: [0, 15]
+      labels:
+        - $n=5$
+        - PiLaR(5)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarBreakout-v1_est-nstep-5_lr-0.0001.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarBreakout-v1_est-pilar2-5_lr-0.0001.npy
+    lcurve_freeway_n3:
+      title: "Freeway"
+      ylabel: "Return"
+      ylim: [0, 55]
+      labels:
+        - $n=3$
+        - PiLaR(3)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarFreeway-v1_est-nstep-3_lr-1e-05.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarFreeway-v1_est-pilar2-3_lr-1e-05.npy
+    lcurve_freeway_n5:
+      title: "Freeway"
+      ylabel: " "
+      ylim: [0, 55]
+      labels:
+        - $n=5$
+        - PiLaR(5)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarFreeway-v1_est-nstep-5_lr-1e-05.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarFreeway-v1_est-pilar2-5_lr-1e-05.npy
+    lcurve_seaquest_n3:
+      title: "Seaquest"
+      ylabel: "Return"
+      ylim: [0, 40]
+      labels:
+        - $n=3$
+        - PiLaR(3)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSeaquest-v1_est-nstep-3_lr-3e-05.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSeaquest-v1_est-pilar2-3_lr-3e-05.npy
+    lcurve_seaquest_n5:
+      title: "Seaquest"
+      ylabel: " "
+      ylim: [0, 40]
+      labels:
+        - $n=5$
+        - PiLaR(5)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSeaquest-v1_est-nstep-5_lr-1e-05.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSeaquest-v1_est-pilar2-5_lr-1e-05.npy
+    lcurve_spaceinvaders_n3:
+      title: "Space Invaders"
+      ylabel: "Return"
+      ylim: [0, 80]
+      labels:
+        - $n=3$
+        - PiLaR(3)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSpaceInvaders-v1_est-nstep-3_lr-0.0001.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSpaceInvaders-v1_est-pilar2-3_lr-0.0001.npy
+    lcurve_spaceinvaders_n5:
+      title: "Space Invaders"
+      ylabel: " "
+      ylim: [0, 80]
+      labels:
+        - $n=5$
+        - PiLaR(5)
+      experiments:
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSpaceInvaders-v1_est-nstep-5_lr-0.0001.npy
+        - agent-ALR2_batch_len-1_cpu-True_defaults-minatar_env-MinAtarSpaceInvaders-v1_est-pilar2-5_lr-0.0001.npy

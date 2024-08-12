@@ -1,0 +1,35 @@
+rw:
+  function: run_randomwalk.main
+  trials: 100
+  kwargs:
+    alpha: [0.0067, 0.0074, 0.0082, 0.0091, 0.0101, 0.0111, 0.0123, 0.0136, 0.015, 0.0166, 0.0183, 0.0202, 0.0224, 0.0247, 0.0273, 0.0302, 0.0334, 0.0369, 0.0408, 0.045, 0.0498, 0.055, 0.0608, 0.0672, 0.0743, 0.0821, 0.0907, 0.1003, 0.1108, 0.1225, 0.1353, 0.1496, 0.1653, 0.1827, 0.2019, 0.2231, 0.2466, 0.2725, 0.3012, 0.3329, 0.3679, 0.4066, 0.4493, 0.4966, 0.5488, 0.6065, 0.6703, 0.7408, 0.8187, 0.9048, 1]
+    estimator:
+    - nstep-2
+    - nstep-3
+    - nstep-5
+    - nstep-10
+    - lambda-0.5
+    - lambda-0.67
+    - lambda-0.8
+    - lambda-0.9
+
+
+minatar:
+  function: run_control.main
+  trials: 32
+  kwargs:
+    agent: ALR
+    cpu: True
+    defaults: minatar
+    env:
+      - MinAtar/Asterix-v1
+      - MinAtar/Breakout-v1
+      - MinAtar/Freeway-v1
+      - MinAtar/Seaquest-v1
+      - MinAtar/SpaceInvaders-v1
+    est:
+      - nstep-3
+      - nstep-5
+      - pilar-3
+      - pilar-5
+    lr: [0.00001, 0.00003, 0.0001, 0.0003, 0.001]

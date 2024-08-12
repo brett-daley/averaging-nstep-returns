@@ -1,0 +1,47 @@
+minatar:
+  batch_size: 32
+  discount: 0.99
+  duration: 5_000_000
+  epsilon: minatar
+  extractor: minatarcnn
+  loss: mse
+  prepop: 5_000
+  rmem_size: 100_000
+  target_period: 1_000
+  train_period: 1
+
+cartpole: &cartpole
+  discount: 0.99
+  duration: 500_000
+  env: CartPole-v1
+  epsilon: 0.05
+  extractor: mlp2l64u
+  prepop: 4_000
+  rmem_size: 500_000
+  target_period: 1_000
+  train_period: 1
+
+lunar:
+  <<: *cartpole
+  env: LunarLander-v2
+
+acrobot:
+  <<: *cartpole
+  env: Acrobot-v1
+  extractor: mlp2l32u
+
+mountaincar:
+  <<: *cartpole
+  env: MountainCar-v0
+  extractor: mlp2l32u
+
+atari:
+  batch_size: 32
+  discount: 0.99
+  duration: 50_000_000
+  epsilon: atari
+  extractor: ataricnn
+  prepop: 50_000
+  rmem_size: 1_000_000
+  target_period: 10_000
+  train_period: 4
