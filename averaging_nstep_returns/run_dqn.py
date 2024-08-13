@@ -3,7 +3,7 @@ import itertools
 
 import numpy as np
 
-import agents
+from dqn import ALR
 import cmdline
 from tasks import envs
 from utils import jax_device_context, use_deterministic_gpu_ops
@@ -31,9 +31,7 @@ def run(env: str, agent: str, discount: float, duration: float, seed: int, verbo
     env.action_space.seed(seed)
 
     # Make agent
-    agent_cls = getattr(agents, agent)
-    agent_args = (env.observation_space, env.action_space, seed, discount)
-    agent = agent_cls(*agent_args, **agent_kwargs)
+    agent = ALR(env.observation_space, env.action_space, seed, discount, **agent_kwargs)
 
     # Start training
 
