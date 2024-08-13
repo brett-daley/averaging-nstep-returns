@@ -1,1 +1,1 @@
-from returns.estimator import Estimator
+from averaging_nstep_returns.returns.estimator import Estimator

@@ -1,7 +1,7 @@
 from functools import partial
 
-from returns import Estimator
-from returns.jax import esarsa, shared
+from averaging_nstep_returns.returns import Estimator
+from averaging_nstep_returns.returns.jax import esarsa, shared
 
 
 def get_estimator(name: str):

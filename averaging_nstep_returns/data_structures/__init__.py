@@ -1,2 +1,2 @@
-from data_structures.image_stacker import ImageStacker
-from data_structures.replay_memory import ReplayMemory
+from averaging_nstep_returns.data_structures.image_stacker import ImageStacker
+from averaging_nstep_returns.data_structures.replay_memory import ReplayMemory

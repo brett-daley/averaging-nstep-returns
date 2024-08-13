@@ -3,8 +3,9 @@ from abc import ABC
 import gymnasium as gym
 import numpy as np
 
-from tasks.dynamic_programming import policy_evaluation
-import tasks.envs
+from averaging_nstep_returns import tasks
+from averaging_nstep_returns.tasks.dynamic_programming import policy_evaluation
+import averaging_nstep_returns.tasks.envs
 
 
 class Task(ABC):

@@ -4,8 +4,8 @@ import cv2
 import gymnasium as gym
 import numpy as np
 
-from data_structures import ImageStacker
-from utils import onehot
+from averaging_nstep_returns.data_structures import ImageStacker
+from averaging_nstep_returns.utils import onehot
 
 
 class OneHot(gym.ObservationWrapper):

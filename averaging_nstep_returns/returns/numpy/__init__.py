@@ -1,2 +1,2 @@
-import returns.numpy.Q
-import returns.numpy.V
+import averaging_nstep_returns.returns.numpy.Q
+import averaging_nstep_returns.returns.numpy.V

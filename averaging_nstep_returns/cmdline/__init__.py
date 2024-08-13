@@ -1,2 +1,2 @@
-from cmdline.defaults import assert_not_none, insert_defaults
-from cmdline.parse import parse_kwargs
+from averaging_nstep_returns.cmdline.defaults import assert_not_none, insert_defaults
+from averaging_nstep_returns.cmdline.parse import parse_kwargs

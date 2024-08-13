@@ -6,11 +6,10 @@ import gym_classics
 gym_classics.register('gymnasium')
 import numpy as np
 
-import cmdline
-from utils import jax_device_context
-import returns.numpy.V as returns
-import tasks
-from tasks.dynamic_programming import policy_evaluation
+from averaging_nstep_returns import cmdline, tasks
+from averaging_nstep_returns.utils import jax_device_context
+import averaging_nstep_returns.returns.numpy.V as returns
+from averaging_nstep_returns.tasks.dynamic_programming import policy_evaluation
 
 
 def main(**kwargs):  # Hook for automation

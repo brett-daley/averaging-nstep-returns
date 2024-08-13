@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 
-from extractors import Extractor
+from averaging_nstep_returns.extractors import Extractor
 
 
 class Identity(Extractor):

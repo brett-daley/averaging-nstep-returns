@@ -1,6 +1,6 @@
 import numpy as np
 
-from returns.numpy.Q import calculate_td_lambda_errors, calculate_n_step_returns, calculate_harmonic_returns
+from averaging_nstep_returns.returns.numpy.Q import calculate_td_lambda_errors, calculate_n_step_returns, calculate_harmonic_returns
 
 
 def calculate(estimator: str, v, next_v, rewards, terminateds, truncateds, discount):

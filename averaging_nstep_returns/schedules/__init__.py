@@ -1,4 +1,4 @@
-from schedules.schedules import *
+from averaging_nstep_returns.schedules.schedules import *
 
 
 def make(schedule_name: str) -> Schedule:

@@ -59,7 +59,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 
-import cmdline
+from averaging_nstep_returns import cmdline
 
 
 def make_env(env_id, idx, capture_video, run_name, gamma):

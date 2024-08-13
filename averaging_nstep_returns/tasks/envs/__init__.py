@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium.wrappers import TimeLimit
 
-from tasks.envs import wrappers
+from averaging_nstep_returns.tasks.envs import wrappers
 
 
 def make(env_id: str):

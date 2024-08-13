@@ -2,12 +2,12 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 
-from extractors.atari_cnn import AtariCNN
-from extractors.extractor import Extractor
-from extractors.identity import Identity
-from extractors.minatar_cnn import MinAtarCNN
-from extractors.mlp import MLP
-from utils import normalize_if_image
+from averaging_nstep_returns.extractors.atari_cnn import AtariCNN
+from averaging_nstep_returns.extractors.extractor import Extractor
+from averaging_nstep_returns.extractors.identity import Identity
+from averaging_nstep_returns.extractors.minatar_cnn import MinAtarCNN
+from averaging_nstep_returns.extractors.mlp import MLP
+from averaging_nstep_returns.utils import normalize_if_image
 
 
 def make(task_id: str) -> Extractor:

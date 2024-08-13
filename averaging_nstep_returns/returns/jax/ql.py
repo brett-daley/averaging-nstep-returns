@@ -2,8 +2,8 @@ from functools import partial
 
 import jax.numpy as jnp
 
-from returns import Estimator
-from returns.jax import shared
+from averaging_nstep_returns.returns import Estimator
+from averaging_nstep_returns.returns.jax import shared
 
 
 def get_estimator(name: str):
