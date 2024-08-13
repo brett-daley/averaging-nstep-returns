@@ -87,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--agent', type=str, default='ALR')
     parser.add_argument('--defaults', type=str)
     parser.add_argument('--discount', type=float, default=0.99)
-    parser.add_argument('--duration', type=float)
+    parser.add_argument('--duration', type=float, default=5_000_000)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('-v', '--verbose', action='store_true')
     kwargs = cmdline.parse_kwargs(parser)

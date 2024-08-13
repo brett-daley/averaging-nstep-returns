@@ -10,9 +10,6 @@ class Agent(ABC):
         self.rng_seed = rng_seed
         self.np_random = np.random.default_rng(rng_seed)
 
-    # def __str__(self):
-    #     return type(self).__name__
-
     @abstractmethod
     def reinforce(self, obs, action, next_obs, reward, done, info={}):
         raise NotImplementedError
