@@ -83,10 +83,10 @@ def run(env: str, agent: str, discount: float, duration: float, seed: int, verbo
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true')
-    parser.add_argument('--env', type=str)
-    parser.add_argument('--agent', type=str)
+    parser.add_argument('--env', type=str, default='CartPole-v1')
+    parser.add_argument('--agent', type=str, default='ALR')
     parser.add_argument('--defaults', type=str)
-    parser.add_argument('--discount', type=float)
+    parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--duration', type=float)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('-v', '--verbose', action='store_true')

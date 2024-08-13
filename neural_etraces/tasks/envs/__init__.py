@@ -1,9 +1,5 @@
 import gymnasium as gym
-from gymnasium.envs import register
 from gymnasium.wrappers import TimeLimit
-import gym_classics
-gym_classics.register('gymnasium')
-from gym_classics.envs.abstract.gridworld import Gridworld
 
 from tasks.envs import wrappers
 
@@ -24,11 +20,6 @@ def make(env_id: str):
         env = TimeLimit(env, max_episode_steps=override_limits[env_id])
 
     env = wrappers.EnvProbe(env)
-
-    # if isinstance(env.unwrapped, Gridworld):  # Gym Classics gridworld
-    #     env = OneHotCoordinate(env)
-    # elif isinstance(env.observation_space, gym.spaces.Discrete):  # Discrete observations
-    #     env = OneHot(env)
 
     return env
 
@@ -52,11 +43,3 @@ def make_atari_env(env_id: str):
     # Reward clipping must come after frame skipping
     env = wrappers.AtariRewardClipping(env)
     return env
-
-
-### Environment registration:
-
-register(
-    id='SplitGridworld-v0',
-    entry_point='tasks.envs.split_gridworld:SplitGridworld'
-)

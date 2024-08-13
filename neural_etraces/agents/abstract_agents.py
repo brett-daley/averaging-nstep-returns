@@ -18,21 +18,6 @@ class Agent(ABC):
         raise NotImplementedError
 
 
-class PredictionAgent(Agent):
-    def __init__(self, obs_space, action_space, seed: int, discount: float):
-        super().__init__(obs_space, action_space, seed)
-        assert 0.0 <= discount <= 1.0
-        self.discount = discount
-
-    @abstractmethod
-    def predict(self, obs):
-        raise NotImplementedError
-
-    @abstractmethod
-    def reinforce(self, obs, action, next_obs, reward, done, behavior_probs, target_probs, info={}):
-        raise NotImplementedError
-
-
 class ControlAgent(Agent):
     def __init__(self, obs_space, action_space, seed: int, discount: float):
         super().__init__(obs_space, action_space, seed)
