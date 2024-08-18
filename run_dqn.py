@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from collections import namedtuple
 import argparse
+from collections import namedtuple
 import itertools
+import math
 
 import gymnasium as gym
 import jax
@@ -15,7 +16,6 @@ from averaging_nstep_returns.tasks import envs
 from averaging_nstep_returns.utils import jax_device_context, use_deterministic_gpu_ops
 from averaging_nstep_returns.extractors import vector_ops as vect
 import averaging_nstep_returns.returns.jax as returns
-from averaging_nstep_returns.utils import egreedy
 
 
 class Agent(ABC):
@@ -42,7 +42,7 @@ class ControlAgent(Agent):
 
 
 class DQN(ControlAgent):
-    """Deep Q-Network with forward-view returns"""
+    """Deep Q-Network (DQN) with (averaged) n-step returns"""
     Parameters = namedtuple('Parameters', ['theta', 'w', 'b'])
 
     def __init__(self, observation_space, action_space, seed, discount, extractor='none', opt='adam', lr=3e-4, train_period=4,
@@ -66,9 +66,9 @@ class DQN(ControlAgent):
         assert batch_len >= 1
         self.batch_len = batch_len
         self.loss = loss
+        self.est = est
 
         self._make_network(extractor, seed)
-        self._make_estimator(est)
         self._make_optimizer(opt, lr)
         self._define_forward()
         self._define_update()
@@ -78,7 +78,7 @@ class DQN(ControlAgent):
         # Debug info
         param_count = sum(x.size for x in jax.tree_util.tree_leaves(self.params))
         print("Parameters =", param_count)
-        self._print_q = False
+        # self._print_q = False
 
     def _make_network(self, extractor, seed):
         self.extractor = extractor = extractors.make(extractor)
@@ -88,10 +88,6 @@ class DQN(ControlAgent):
         w = jnp.zeros([features, self.action_space.n + 1])
         b = jnp.zeros(w.shape[1])
         self.init_params = self.Parameters(theta, w, b)
-
-    def _make_estimator(self, name):
-        self.est = returns.ql.get_estimator(name)
-        self.traj_len = self.est.traj_len(self.batch_len)
 
     def _make_optimizer(self, opt, lr):
         assert lr > 0.0
@@ -105,35 +101,64 @@ class DQN(ControlAgent):
             return self.extractor.forward(params.theta, obs)
         self.features = features
 
-        def q_values(params, obs):
+        def qvalues(params, obs):
             x = features(params, obs)
             y = x.dot(params.w) + params.b  # Linear layer
             Q = dueling_layer(y, mode=self.dueling)
             return Q
-        self.q_values = q_values
-        self.jit_q_values = jax.jit(q_values)
+        self.qvalues = qvalues
+        self.jit_qvalues = jax.jit(qvalues)
 
     def _define_update(self):
-        batch_len = self.batch_len
         discount = self.discount
         est = self.est
 
+        prefix, effective_n = est.split('-')
+        effective_n = int(effective_n)
+
+        if prefix == 'nstep':
+            n1 = n2 = effective_n
+            w = 1.0  # Value doesn't matter, but set to 1 to optimize return calculation below
+
+        elif prefix == 'pilar':
+            (n1, n2, w), error = best_approximation(effective_n, discount)
+            print("w={} --> error={}".format(w, error))
+
+        else:
+            raise ValueError(f"unsuppported return estimator '{est}'")
+
+        assert 1 <= n1 <= n2
+        self.traj_len = n2 + 1
+
+        print("n={} --> (n1, n2)={}, w={}".format(effective_n, (n1, n2), w))
+        cr1 = (1-w) * pow(discount, n1) + w * pow(discount, n2)
+        cr2 = pow(discount, effective_n)
+        print("testing if {} ~= {}".format(cr1, cr2))
+        assert np.allclose(cr1, cr2), "contraction rate check failed"
+
         def trajectory_loss(params, target_params, obs, actions, rewards, terminateds, truncateds):
-            Q_main = self.q_values(params, obs)
-            q_main_taken = returns.vmap_select_axis1(Q_main, actions)
+            # Just need to compute the first Q-value of the sequence with main parameters
+            Q_main = self.qvalues(params, obs[0, None])
+            q_main_taken = Q_main[0, actions[0]]
 
-            v_targ = self.dqn_target(Q_main, Q_targ=self.q_values(target_params, obs))
-            where_greedy = (q_main_taken == v_targ)
+            value_func = lambda s: jnp.max(self.qvalues(target_params, s), axis=-1)
+            nstep_returns = lambda n: fast_nstep_return(n, value_func, obs, rewards, terminateds, truncateds, discount)
 
-            g_targ, where_safe = est.calc_returns(v_targ, v_targ, rewards, terminateds, truncateds, discount, where_greedy)
+            if w == 0.0:
+                G, where_safe = nstep_returns(n1)
+            elif w == 1.0:
+                G, where_safe = nstep_returns(n2)
+            else:
+                G1, _ = nstep_returns(n1)
+                G2, where_safe = nstep_returns(n2)
+                G = (1-w) * G1 + w * G2
 
-            errors = stop_gradient(g_targ) - q_main_taken[:-1]  # Make relative to main network
-            losses = {
-                'mse': 0.5 * jnp.square(errors),
-                'huber': huber_loss(errors),
-            }[self.loss]
-            losses = jnp.where(where_safe, losses, 0.0)
-            return losses[:batch_len]
+            error = stop_gradient(G) - q_main_taken
+            return jnp.where(
+                where_safe,
+                0.5 * jnp.square(error),
+                0.0
+            )
 
         vmap_trajectory_loss = jax.vmap(trajectory_loss, in_axes=[None, None, 0, 0, 0, 0, 0])
 
@@ -181,8 +206,7 @@ class DQN(ControlAgent):
 
     def act(self, obs):
         self.t += 1
-
-        self._print_q = self._print_q or (self.t % 1_000 == 1)
+        # self._print_q = self._print_q or (self.t % 1_000 == 1)
 
         epsilon = self._epsilon()
         assert 0.0 <= epsilon <= 1.0
@@ -191,11 +215,11 @@ class DQN(ControlAgent):
             prob = epsilon / self.action_space.n
             return self.action_space.sample(), prob
 
-        q = self.jit_q_values(self.params, obs[None])[0]  # Add/remove batch dimension
+        q = self.jit_qvalues(self.params, obs[None])[0]  # Add/remove batch dimension
 
-        if self._print_q:
-            print(self.t, q, f"ε={epsilon}")
-            self._print_q = False
+        # if self._print_q:
+        #     print(self.t, q, f"ε={epsilon}")
+        #     self._print_q = False
 
         prob = 1 - epsilon + (epsilon / self.action_space.n)
         return argmax(q), prob
@@ -204,9 +228,6 @@ class DQN(ControlAgent):
         if self.t < self.prepop:
             return 1.0
         return self.epsilon_schedule(self.t - self.prepop)
-
-    def distr(self, Q):
-        return egreedy(Q, self._epsilon())
 
 
 class DDQN(DQN):
@@ -237,15 +258,6 @@ def dueling_layer(values: jnp.array, mode: str):
     return V + A - A_ident
 
 
-def huber_loss(x):
-    abs_x = jnp.abs(x)
-    return jnp.where(
-        abs_x < 1.0,
-        0.5 * jnp.square(x),
-        abs_x - 0.5
-    )
-
-
 def fast_nstep_return(n, value_func, obs, rewards, terms, truncs, discount):
     def bootstrap(i):
         v = value_func(obs[i+1, None])
@@ -262,102 +274,6 @@ def fast_nstep_return(n, value_func, obs, rewards, terms, truncs, discount):
     G += jnp.power(discount, bs_index + 1) * bootstrap(bs_index)
     where_safe = jnp.logical_not(truncs[0])
     return G, where_safe
-
-
-class ALR(DQN):
-    """DQN with approximate lambda-return from averaged n-step returns"""
-
-    def _make_estimator(self, name):
-        self.estimator = name  # For backwards compatibility
-
-    def _define_update(self):
-        discount = self.discount
-        est = self.estimator
-
-        prefix, effective_n = est.split('-')
-        effective_n = int(effective_n)
-
-        if prefix == 'nstep':
-            n1 = n2 = effective_n
-            w = 1.0  # Value doesn't matter, but set to 1 to optimize return calculation below
-
-        elif prefix == 'pilar':
-            (n1, n2, w), error = best_approximation(effective_n, discount)
-            print("w={} --> error={}".format(w, error))
-
-        elif prefix == 'pilar1':
-            n1 = 1
-            n2 = effective_n + 1
-
-        elif prefix == 'pilar2':
-            n1 = effective_n - 1
-            n2 = effective_n + 1
-
-        elif prefix == 'pilar3':
-            n1 = effective_n - 1
-            n2 = effective_n + 2
-
-        elif prefix == 'pilar4':
-            n1 = math.ceil(effective_n / 2)
-            n2 = math.floor(3 * effective_n / 2)
-
-        else:
-            raise ValueError(f"unsuppported return estimator '{est}'")
-
-        assert 1 <= n1 <= n2
-        self.traj_len = n2 + 1
-
-        if prefix != 'nstep':
-            assert discount > 0
-            if discount < 1:
-                w = (pow(discount, effective_n) - pow(discount, n1)) / (pow(discount, n2) - pow(discount, n1))
-            else:
-                w = (effective_n - n1) / (n2 - n1)
-
-        print("n={} --> (n1, n2)={}, w={}".format(effective_n, (n1, n2), w))
-        cr1 = (1-w) * pow(discount, n1) + w * pow(discount, n2)
-        cr2 = pow(discount, effective_n)
-        print("testing if {} ~= {}".format(cr1, cr2))
-        assert np.allclose(cr1, cr2), "contraction rate check failed"
-
-        def trajectory_loss(params, target_params, obs, actions, rewards, terminateds, truncateds):
-            # Just need to compute the first Q-value of the sequence with main parameters
-            Q_main = self.q_values(params, obs[0, None])
-            q_main_taken = Q_main[0, actions[0]]
-
-            value_func = lambda s: jnp.max(self.q_values(target_params, s), axis=-1)
-            nstep_returns = lambda n: fast_nstep_return(n, value_func, obs, rewards, terminateds, truncateds, discount)
-
-            if w == 0.0:
-                G, where_safe = nstep_returns(n1)
-            elif w == 1.0:
-                G, where_safe = nstep_returns(n2)
-            else:
-                G1, _ = nstep_returns(n1)
-                G2, where_safe = nstep_returns(n2)
-                G = (1-w) * G1 + w * G2
-
-            error = stop_gradient(G) - q_main_taken
-            loss = {
-                'mse': 0.5 * jnp.square(error),
-                'huber': huber_loss(error),
-            }[self.loss]
-            return jnp.where(where_safe, loss, 0.0)
-
-        vmap_trajectory_loss = jax.vmap(trajectory_loss, in_axes=[None, None, 0, 0, 0, 0, 0])
-
-        @jax.jit
-        def update(opt_state, target_params, minibatch, t):
-            def loss(params):
-                losses = vmap_trajectory_loss(params, target_params, *minibatch)
-                return jnp.mean(losses)
-
-            params = self.get_params(opt_state)
-            step = jax.grad(loss)(params)
-            opt_state = self.opt_update(t, step, opt_state)
-            return opt_state
-
-        self.update = update
 
 
 def best_approximation(effective_n, discount):
@@ -423,7 +339,7 @@ def main(**kwargs):  # Hook for automation
         return run(**kwargs)
 
 
-def run(env: str, agent: str, discount: float, duration: float, seed: int, verbose: bool = False, **agent_kwargs):
+def run(env: str, discount: float, duration: float, seed: int, verbose: bool = False, **agent_kwargs):
     duration = int(duration)
     assert duration > 0
     assert 0.0 <= discount <= 1.0
@@ -433,7 +349,7 @@ def run(env: str, agent: str, discount: float, duration: float, seed: int, verbo
     env.action_space.seed(seed)
 
     # Make agent
-    agent = ALR(env.observation_space, env.action_space, seed, discount, **agent_kwargs)
+    agent = DQN(env.observation_space, env.action_space, seed, discount, **agent_kwargs)
 
     # Start training
 
@@ -484,7 +400,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--env', type=str, default='CartPole-v1')
-    parser.add_argument('--agent', type=str, default='ALR')
     parser.add_argument('--defaults', type=str)
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--duration', type=float, default=5_000_000)
