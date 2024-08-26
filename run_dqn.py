@@ -118,11 +118,11 @@ class DQN(ControlAgent):
 
         if prefix == 'nstep':
             n1 = n2 = effective_n
-            w = 1.0  # Value doesn't matter, but set to 1 to optimize return calculation below
+            c = 1.0  # Value doesn't matter, but set to 1 to optimize return calculation below
 
         elif prefix == 'pilar':
-            (n1, n2, w), error = best_approximation(effective_n, discount)
-            print("w={} --> error={}".format(w, error))
+            (n1, n2, c), error = best_approximation(effective_n, discount)
+            print("c={} --> error={}".format(c, error))
 
         else:
             raise ValueError(f"unsuppported return estimator '{est}'")
@@ -130,11 +130,11 @@ class DQN(ControlAgent):
         assert 1 <= n1 <= n2
         self.traj_len = n2 + 1
 
-        print("n={} --> (n1, n2)={}, w={}".format(effective_n, (n1, n2), w))
-        cr1 = (1-w) * pow(discount, n1) + w * pow(discount, n2)
-        cr2 = pow(discount, effective_n)
-        print("testing if {} ~= {}".format(cr1, cr2))
-        assert np.allclose(cr1, cr2), "contraction rate check failed"
+        print("n={} --> (n1, n2)={}, c={}".format(effective_n, (n1, n2), c))
+        cmod1 = (1-c) * pow(discount, n1) + c * pow(discount, n2)
+        cmod2 = pow(discount, effective_n)
+        print("testing if {} ~= {}".format(cmod1, cmod2))
+        assert np.allclose(cmod1, cmod2), "contraction modulus check failed"
 
         def trajectory_loss(params, target_params, obs, actions, rewards, terminateds, truncateds):
             # Just need to compute the first Q-value of the sequence with main parameters
@@ -144,14 +144,14 @@ class DQN(ControlAgent):
             value_func = lambda s: jnp.max(self.qvalues(target_params, s), axis=-1)
             nstep_returns = lambda n: fast_nstep_return(n, value_func, obs, rewards, terminateds, truncateds, discount)
 
-            if w == 0.0:
+            if c == 0.0:
                 G, where_safe = nstep_returns(n1)
-            elif w == 1.0:
+            elif c == 1.0:
                 G, where_safe = nstep_returns(n2)
             else:
                 G1, _ = nstep_returns(n1)
                 G2, where_safe = nstep_returns(n2)
-                G = (1-w) * G1 + w * G2
+                G = (1-c) * G1 + c * G2
 
             error = stop_gradient(G) - q_main_taken
             return jnp.where(
@@ -278,11 +278,10 @@ def best_approximation(effective_n, discount):
     assert 0.0 < discount < 1.0
     lambd = (1 - pow(discount, effective_n - 1)) / (1 - pow(discount, effective_n))
 
-    def error_func(n1, n2):
-        N = 10_000  # Number of terms in approximation
-        pilar_eligibility, w = get_pilar_eligibility_func(effective_n, discount, n1, n2)
-        error = max([abs(pow(discount, i) * pilar_eligibility(i) - pow(discount * lambd, i)) for i in range(N + 1)])
-        return error, w
+    def error_func(n1, n2, approx_inf=10_000):
+        pilar_eligibility, c = get_pilar_eligibility_func(effective_n, discount, n1, n2)
+        error = max([abs(pow(discount, i) * pilar_eligibility(i) - pow(discount * lambd, i)) for i in range(approx_inf + 1)])
+        return error, c
 
     best_values = None
     best_error = float('inf')
@@ -291,20 +290,20 @@ def best_approximation(effective_n, discount):
         prev_error = float('inf')
 
         for n2 in itertools.count(start=math.floor(effective_n) + 1):
-            error, w = error_func(n1, n2)
+            error, c = error_func(n1, n2)
 
             if error < best_error:
-                best_values = (n1, n2, w)
+                best_values = (n1, n2, c)
                 best_error = error
 
             if error >= prev_error:
                 break
             prev_error = error
 
-    # Sanity check: make sure contraction rates match
-    cr = (1-w) * pow(discount, n1) + w * pow(discount, n2)
-    expected_cr = pow(discount, effective_n)
-    assert np.allclose(cr, expected_cr), f"contraction rate sanity check failed: {cr} != {expected_cr}"
+    # Sanity check: make sure contraction moduli match
+    cmod = (1-c) * pow(discount, n1) + c * pow(discount, n2)
+    expected_cmod = pow(discount, effective_n)
+    assert np.allclose(cmod, expected_cmod), f"contraction modulus sanity check failed: {cmod} != {expected_cmod}"
 
     return best_values, best_error
 
@@ -312,16 +311,16 @@ def best_approximation(effective_n, discount):
 def get_pilar_eligibility_func(effective_n, discount, n1, n2):
     assert n1 <= effective_n < n2
     assert 0.0 < discount < 1.0
-    w = (discount**n1 - discount**effective_n) / (discount**n1 - discount**n2)
+    c = (discount**n1 - discount**effective_n) / (discount**n1 - discount**n2)
 
     def pilar_eligibility(i):
         if i < n1:
             return 1.0
         if i < n2:
-            return w
+            return c
         return 0.0
 
-    return pilar_eligibility, w
+    return pilar_eligibility, c
 
 
 def main(**kwargs):  # Hook for automation
