@@ -280,8 +280,8 @@ def best_approximation(effective_n, discount):
 
     def error_func(n1, n2):
         N = 10_000  # Number of terms in approximation
-        pilar_weight, w = get_pilar_weight_func(effective_n, discount, n1, n2)
-        error = max([abs(pilar_weight(i) - pow(discount * lambd, i)) for i in range(N + 1)])
+        pilar_eligibility, w = get_pilar_eligibility_func(effective_n, discount, n1, n2)
+        error = max([abs(pow(discount, i) * pilar_eligibility(i) - pow(discount * lambd, i)) for i in range(N + 1)])
         return error, w
 
     best_values = None
@@ -309,19 +309,19 @@ def best_approximation(effective_n, discount):
     return best_values, best_error
 
 
-def get_pilar_weight_func(effective_n, discount, n1, n2):
+def get_pilar_eligibility_func(effective_n, discount, n1, n2):
     assert n1 <= effective_n < n2
     assert 0.0 < discount < 1.0
     w = (discount**n1 - discount**effective_n) / (discount**n1 - discount**n2)
 
-    def pilar_weight(i):
+    def pilar_eligibility(i):
         if i < n1:
-            return pow(discount, i)
+            return 1.0
         if i < n2:
-            return w * pow(discount, i)
+            return w
         return 0.0
 
-    return pilar_weight, w
+    return pilar_eligibility, w
 
 
 def main(**kwargs):  # Hook for automation
