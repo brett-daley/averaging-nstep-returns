@@ -183,8 +183,8 @@ class DQN(ControlAgent):
     def params(self):
         return self.get_params(self.opt_state)
 
-    def reinforce(self, obs, action, next_obs, reward, terminated, truncated, b_prob):
-        self.replay_memory.save(obs, action, reward, terminated, truncated, b_prob)
+    def reinforce(self, obs, action, next_obs, reward, terminated, truncated):
+        self.replay_memory.save(obs, action, reward, terminated, truncated)
         self.update_target_network()
 
         if self.t <= self.prepop:
@@ -192,7 +192,6 @@ class DQN(ControlAgent):
 
         if self.train_period == 1 or (self.t % self.train_period) == 1:
             minibatch = self.replay_memory.sample_trajectories(self.batch_size, length=self.traj_len)
-            minibatch = minibatch[:-1]  # Slice off behavior probabilities
             self.opt_state = self.update(self.opt_state, self.target_params, minibatch, self.train_iterations)
             self.train_iterations += 1
 
@@ -212,8 +211,7 @@ class DQN(ControlAgent):
         assert 0.0 <= epsilon <= 1.0
 
         if self.np_random.random() <= epsilon:
-            prob = epsilon / self.action_space.n
-            return self.action_space.sample(), prob
+            return self.action_space.sample()
 
         q = self.jit_qvalues(self.params, obs[None])[0]  # Add/remove batch dimension
 
@@ -221,8 +219,7 @@ class DQN(ControlAgent):
         #     print(self.t, q, f"ε={epsilon}")
         #     self._print_q = False
 
-        prob = 1 - epsilon + (epsilon / self.action_space.n)
-        return argmax(q), prob
+        return argmax(q)
 
     def _epsilon(self):
         if self.t < self.prepop:
@@ -363,9 +360,9 @@ def run(env: str, discount: float, duration: float, seed: int, verbose: bool = F
     i = 0
 
     for t in itertools.count(start=1):
-        action, b_prob = agent.act(obs)
+        action = agent.act(obs)
         next_obs, reward, terminated, truncated, _ = env.step(action)
-        agent.reinforce(obs, action, next_obs, reward, terminated, truncated, b_prob)
+        agent.reinforce(obs, action, next_obs, reward, terminated, truncated)
 
         if env.is_done():
             avg_undisc_return = np.mean(env.get_episode_returns()[-100:])
